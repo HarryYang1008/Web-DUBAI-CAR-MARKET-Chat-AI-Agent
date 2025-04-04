@@ -62,23 +62,31 @@ if df is not None:
 
                 if is_general:
                     # 🔎 全市场趋势问题，使用 pandas 汇总
+                    # 每个品牌的统计摘要
                     brand_summary = data.groupby("Brand").agg({
                         "Model": "nunique",
                         "Price": ["mean", "min", "max"],
                         "Year": "mean",
                         "Kilometers": "mean"
                     }).reset_index()
+
+                    # 扁平化多级列名
                     brand_summary.columns = ['Brand', 'Model Count', 'Avg Price', 'Min Price', 'Max Price', 'Avg Year', 'Avg Km']
 
-                    # 修复后的 overall_summary 计算
-                    overall_summary = data.agg({
-                        "Price": ["mean", "min", "max"],
-                        "Year": "mean",
-                        "Kilometers": "mean"
+                    # 计算整体 summary（均值）
+                    overall = pd.DataFrame({
+                        'Brand': ['Overall'],
+                        'Model Count': [brand_summary['Model Count'].sum()],
+                        'Avg Price': [data['Price'].mean()],
+                        'Min Price': [data['Price'].min()],
+                        'Max Price': [data['Price'].max()],
+                        'Avg Year': [data['Year'].mean()],
+                        'Avg Km': [data['Kilometers'].mean()]
                     })
-                    overall_summary.columns = ['_'.join(col).strip() for col in overall_summary.columns.values]
-                    overall_summary = pd.DataFrame([overall_summary])
-                    overall_summary.insert(0, "Summary", "Overall")
+
+                    # 合并品牌和总体 summary
+                    brand_summary = pd.concat([brand_summary, overall], ignore_index=True)
+
 
 
                     prompt = f"""
