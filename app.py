@@ -151,7 +151,7 @@ Please perform the following:
 
                 # GPT 调用
                 response = client.chat.completions.create(
-                    model="gpt-4",
+                    model="gpt-4o",
                     messages=[
                         {"role": "system", "content": "You are a data analyst specialized in car market trends in Dubai."},
                         {"role": "user", "content": prompt}
