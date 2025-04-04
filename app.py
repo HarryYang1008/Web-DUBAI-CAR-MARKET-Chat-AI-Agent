@@ -61,6 +61,7 @@ if df is not None:
                 is_general = any(kw.lower() in user_question.lower() for kw in general_keywords)
 
                 if is_general:
+                    # 🔎 全市场趋势问题，使用 pandas 汇总
                     brand_summary = data.groupby("Brand").agg({
                         "Model": "nunique",
                         "Price": ["mean", "min", "max"],
@@ -69,11 +70,16 @@ if df is not None:
                     }).reset_index()
                     brand_summary.columns = ['Brand', 'Model Count', 'Avg Price', 'Min Price', 'Max Price', 'Avg Year', 'Avg Km']
 
+                    # 修复后的 overall_summary 计算
                     overall_summary = data.agg({
                         "Price": ["mean", "min", "max"],
                         "Year": "mean",
                         "Kilometers": "mean"
-                    }).rename("Overall").to_frame().T
+                    })
+                    overall_summary.columns = ['_'.join(col).strip() for col in overall_summary.columns.values]
+                    overall_summary = pd.DataFrame([overall_summary])
+                    overall_summary.insert(0, "Summary", "Overall")
+
 
                     prompt = f"""
 You are a professional automotive market analyst in Dubai.
