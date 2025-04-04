@@ -11,12 +11,11 @@ st.set_page_config(page_title="Dubai Car Market Q&A", layout="wide")
 st.title("🚗 Dubai Used Car Price Assistant")
 
 # ---------------------- 🔘 文件信息按钮 ----------------------
-with st.expander("🗂️ Show Data File Info"):
+with st.expander("📂 Show Data File Info"):
     if "current_filename" in st.session_state:
         st.write(f"**Current file name:** `{st.session_state['current_filename']}`")
     else:
         st.warning("No file has been loaded yet.")
-# ------------------------------------------------------------
 
 # ---------------------- 数据加载 ----------------------------
 data_source = st.radio("Select data source", ["📂 Upload CSV", "🌐 Load from GitHub"])
@@ -39,7 +38,6 @@ elif data_source == "🌐 Load from GitHub":
             st.success(f"✅ Loaded: {filename} ({df.shape[0]} rows)")
         except Exception as e:
             st.error(f"❌ Failed to load from GitHub: {e}")
-# ------------------------------------------------------------
 
 if df is not None:
     with st.expander("🔍 Preview Data"):
@@ -50,7 +48,6 @@ if df is not None:
     if user_question and st.button("🔎 Analyze"):
         with st.spinner("Analyzing data with GPT-4..."):
 
-            # 数据预处理
             required_cols = ['Brand', 'Model', 'Price', 'Year', 'Kilometers']
             if not all(col in df.columns for col in required_cols):
                 st.error(f"Missing required columns: {required_cols}")
@@ -59,24 +56,65 @@ if df is not None:
                 data['Price'] = data['Price'].astype(str).str.replace(",", "").str.extract('(\d+)').astype(float)
                 data['Kilometers'] = data['Kilometers'].astype(str).str.replace(",", "").str.extract('(\d+)').astype(float)
 
-                # --- 关键词提取逻辑 ---
-                brands = data["Brand"].dropna().unique().tolist()
-                brand_match = None
-                for brand in brands:
-                    if re.search(rf"\b{re.escape(brand)}\b", user_question, re.IGNORECASE):
-                        brand_match = brand
-                        break
+                # 判断是否为全市场问题
+                general_keywords = ['overall', 'market', 'all brands', 'general trend', 'whole market', 'total', '总览', '整体', '全部', '所有', '市场', '平均']
+                is_general = any(kw.lower() in user_question.lower() for kw in general_keywords)
 
-                if brand_match:
-                    filtered = data[data["Brand"].str.contains(brand_match, case=False)]
-                    prompt_data = filtered
-                    st.info(f"📌 Detected brand in question: **{brand_match}**. Analyzing full {len(filtered)} records.")
+                if is_general:
+                    brand_summary = data.groupby("Brand").agg({
+                        "Model": "nunique",
+                        "Price": ["mean", "min", "max"],
+                        "Year": "mean",
+                        "Kilometers": "mean"
+                    }).reset_index()
+                    brand_summary.columns = ['Brand', 'Model Count', 'Avg Price', 'Min Price', 'Max Price', 'Avg Year', 'Avg Km']
+
+                    overall_summary = data.agg({
+                        "Price": ["mean", "min", "max"],
+                        "Year": "mean",
+                        "Kilometers": "mean"
+                    }).rename("Overall").to_frame().T
+
+                    prompt = f"""
+You are a professional automotive market analyst in Dubai.
+
+The user asked: "{user_question}"
+
+Here is a summary of the entire used car dataset (10,000+ records), generated from real data.
+
+Brand-level statistics:
+
+{brand_summary.to_markdown(index=False)}
+
+Overall summary across the full dataset:
+
+{overall_summary.to_markdown(index=False)}
+
+Please:
+1. Identify major market trends across price, mileage, and year.
+2. Highlight which brands are high-end vs affordable.
+3. Comment on how mileage correlates with price or year.
+4. Suggest which segments (brands/models) offer the best value.
+5. Write like you're briefing a business executive team in simple, clear terms.
+"""
+
                 else:
-                    prompt_data = data.sample(min(100, len(data)))
-                    st.info(f"⚠️ No specific brand detected. Using random sample of {len(prompt_data)} records.")
+                    brands = data["Brand"].dropna().unique().tolist()
+                    brand_match = None
+                    for brand in brands:
+                        if re.search(rf"\b{re.escape(brand)}\b", user_question, re.IGNORECASE):
+                            brand_match = brand
+                            break
 
-                # 构建分析 Prompt
-                prompt = f"""
+                    if brand_match:
+                        filtered = data[data["Brand"].str.contains(brand_match, case=False)]
+                        prompt_data = filtered
+                        st.info(f"📌 Detected brand in question: **{brand_match}**. Analyzing full {len(filtered)} records.")
+                    else:
+                        prompt_data = data.sample(min(100, len(data)))
+                        st.info(f"⚠️ No specific brand detected. Using random sample of {len(prompt_data)} records.")
+
+                    prompt = f"""
 You are a professional car market analyst in Dubai.
 
 A user asked: "{user_question}"
