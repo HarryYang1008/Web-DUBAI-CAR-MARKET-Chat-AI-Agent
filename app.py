@@ -98,20 +98,18 @@ Please:
 3. Comment on how mileage correlates with price or year.
 4. Suggest which segments (brands/models) offer the best value.
 5. Write like you're briefing a business executive team in simple, clear terms.
+6. Based on the analysis, provide practical suggestions for buyers (e.g., which brands or years offer the best value, which to avoid, etc.)
+
 """
 
                 else:
                     brands = data["Brand"].dropna().unique().tolist()
-                    brand_match = None
-                    for brand in brands:
-                        if re.search(rf"\b{re.escape(brand)}\b", user_question, re.IGNORECASE):
-                            brand_match = brand
-                            break
+                    matched_brands = [brand for brand in brands if re.search(rf"\b{re.escape(brand)}\b", user_question, re.IGNORECASE)]
 
-                    if brand_match:
-                        filtered = data[data["Brand"].str.contains(brand_match, case=False)]
+                    if matched_brands:
+                        filtered = data[data["Brand"].str.contains('|'.join(re.escape(b) for b in matched_brands), case=False)]
                         prompt_data = filtered
-                        st.info(f"📌 Detected brand in question: **{brand_match}**. Analyzing full {len(filtered)} records.")
+                        st.info(f"📌 Detected brands: {', '.join(matched_brands)}. Analyzing {len(filtered)} records.")
                     else:
                         prompt_data = data.sample(min(100, len(data)))
                         st.info(f"⚠️ No specific brand detected. Using random sample of {len(prompt_data)} records.")
@@ -123,16 +121,14 @@ A user asked: "{user_question}"
 
 Please perform the following:
 
-1. Analyze the dataset and answer the user's question in detail.
-2. Identify and list **all models** under the mentioned brand.
-3. Create a Markdown table showing average price (AED), year, and mileage for each model.
-4. Then, provide **a short analysis**, highlighting:
-   - Which models tend to be the most expensive and why?
-   - Which ones appear to be high mileage vs low mileage?
-   - Any interesting market trend (e.g., newer models dropping in price, older models still expensive, etc.)
-5. If relevant, give recommendations (e.g., which model offers best value based on price vs mileage vs year).
+1. Compare all mentioned brands ({', '.join(matched_brands) if matched_brands else 'selected sample'}).
+2. Create a Markdown table showing for each brand: average price, average year, and mileage.
+3. Then analyze differences between them, especially which brand tends to have newer or cheaper listings.
+4. Provide a short summary recommendation.
+5. Based on the analysis, provide practical suggestions for buyers (e.g., which brands or years offer the best value, which to avoid, etc.)
 
-Use the following dataset (columns: Brand, Model, Year, Price, Kilometers):
+
+Use the dataset below:
 
 {prompt_data.to_csv(index=False)}
 """
