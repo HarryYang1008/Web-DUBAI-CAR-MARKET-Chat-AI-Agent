@@ -9,16 +9,40 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 st.set_page_config(page_title="Dubai Car Market Q&A", layout="wide")
 st.title("🚗 Dubai Used Car Price Assistant")
 
-uploaded_file = st.file_uploader("Upload your CSV file (e.g., dubizzle_all_pages.csv)", type=["csv"])
+# ---------------------- 🔘 文件信息弹窗按钮 ----------------------
+if st.button("🗂️ Show Data File Info"):
+    with st.modal("📄 Loaded File Info", close_on_click=True):
+        if "current_filename" in st.session_state:
+            st.write(f"**Current file name:** `{st.session_state['current_filename']}`")
+        else:
+            st.warning("No file has been loaded yet.")
+# ---------------------------------------------------------------
 
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
+# ---------------------- 🔽 数据来源选择 ------------------------
+data_source = st.radio("Select data source", ["📂 Upload CSV", "🌐 Load from GitHub"])
+df = None
 
-    # 简化列名处理，兼容格式差异
-    df.columns = df.columns.str.strip()
-    st.success(f"✅ Data uploaded. {df.shape[0]} rows loaded.")
+if data_source == "📂 Upload CSV":
+    uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
+    if uploaded_file:
+        df = pd.read_csv(uploaded_file)
+        st.session_state["current_filename"] = uploaded_file.name
+        st.success(f"✅ Uploaded: {uploaded_file.name} ({df.shape[0]} rows)")
 
-    # 显示部分数据供检查
+elif data_source == "🌐 Load from GitHub":
+    github_url = st.text_input("Paste raw GitHub CSV URL")
+    if github_url:
+        try:
+            df = pd.read_csv(github_url)
+            filename = github_url.split("/")[-1]
+            st.session_state["current_filename"] = filename
+            st.success(f"✅ Loaded: {filename} ({df.shape[0]} rows)")
+        except Exception as e:
+            st.error(f"❌ Failed to load from GitHub: {e}")
+# ---------------------------------------------------------------
+
+# ---------------------- ❓ 用户提问并分析 -----------------------
+if df is not None:
     with st.expander("🔍 Preview Data"):
         st.dataframe(df.head())
 
@@ -27,7 +51,7 @@ if uploaded_file is not None:
     if user_question and st.button("🔎 Analyze"):
         with st.spinner("Analyzing data with GPT-4..."):
 
-            # 选取相关列并预处理
+            # 数据清洗
             target_cols = ['Brand', 'Model', 'Price', 'Year', 'Kilometers']
             if not all(col in df.columns for col in target_cols):
                 st.error(f"Missing required columns in uploaded file: {target_cols}")
@@ -36,6 +60,7 @@ if uploaded_file is not None:
                 filtered_df['Price'] = filtered_df['Price'].astype(str).str.replace(",", "").str.extract('(\d+)').astype(float)
                 filtered_df['Kilometers'] = filtered_df['Kilometers'].astype(str).str.replace(",", "").str.extract('(\d+)').astype(float)
 
+                # 选取样本避免 token 超限
                 sample_df = filtered_df.sample(min(100, len(filtered_df)))
 
                 # 构建 Prompt
@@ -51,7 +76,7 @@ Here is the dataset (Brand, Model, Year, Price in AED, Kilometers):
 Return a clear summary and use Markdown tables if helpful.
 """
 
-                # 使用新版 OpenAI SDK 发送请求
+                # OpenAI 请求
                 response = client.chat.completions.create(
                     model="gpt-4",
                     messages=[
@@ -64,3 +89,4 @@ Return a clear summary and use Markdown tables if helpful.
 
                 st.markdown("### 📊 Analysis Result")
                 st.markdown(response.choices[0].message.content)
+# ---------------------------------------------------------------
