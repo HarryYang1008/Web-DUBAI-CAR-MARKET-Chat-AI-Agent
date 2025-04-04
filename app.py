@@ -56,13 +56,10 @@ if df is not None:
                 data['Price'] = data['Price'].astype(str).str.replace(",", "").str.extract('(\d+)').astype(float)
                 data['Kilometers'] = data['Kilometers'].astype(str).str.replace(",", "").str.extract('(\d+)').astype(float)
 
-                # 判断是否为全市场问题
                 general_keywords = ['overall', 'market', 'all brands', 'general trend', 'whole market', 'total', '总览', '整体', '全部', '所有', '市场', '平均']
                 is_general = any(kw.lower() in user_question.lower() for kw in general_keywords)
 
                 if is_general:
-                    # 🔎 全市场趋势问题，使用 pandas 汇总
-                    # 每个品牌的统计摘要
                     brand_summary = data.groupby("Brand").agg({
                         "Model": "nunique",
                         "Price": ["mean", "min", "max"],
@@ -70,10 +67,8 @@ if df is not None:
                         "Kilometers": "mean"
                     }).reset_index()
 
-                    # 扁平化多级列名
                     brand_summary.columns = ['Brand', 'Model Count', 'Avg Price', 'Min Price', 'Max Price', 'Avg Year', 'Avg Km']
 
-                    # 计算整体 summary（均值）
                     overall = pd.DataFrame({
                         'Brand': ['Overall'],
                         'Model Count': [brand_summary['Model Count'].sum()],
@@ -84,10 +79,7 @@ if df is not None:
                         'Avg Km': [data['Kilometers'].mean()]
                     })
 
-                    # 合并品牌和总体 summary
                     brand_summary = pd.concat([brand_summary, overall], ignore_index=True)
-
-
 
                     prompt = f"""
 You are a professional automotive market analyst in Dubai.
@@ -96,13 +88,9 @@ The user asked: "{user_question}"
 
 Here is a summary of the entire used car dataset (10,000+ records), generated from real data.
 
-Brand-level statistics:
+Brand-level statistics including an overall row at the bottom:
 
 {brand_summary.to_markdown(index=False)}
-
-Overall summary across the full dataset:
-
-{overall_summary.to_markdown(index=False)}
 
 Please:
 1. Identify major market trends across price, mileage, and year.
