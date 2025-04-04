@@ -77,14 +77,22 @@ if df is not None:
 
                 # 构建分析 Prompt
                 prompt = f"""
-You are a car market analyst. A user asked: "{user_question}"
+You are a professional car market analyst in Dubai.
 
-Please:
-1. Analyze the dataset below and answer the user's question clearly.
-2. If the user mentioned a brand (like Audi or Toyota), list all unique models, and give average price, year, and mileage.
-3. Use a clean Markdown table if helpful.
+A user asked: "{user_question}"
 
-Here is the dataset:
+Please perform the following:
+
+1. Analyze the dataset and answer the user's question in detail.
+2. Identify and list **all models** under the mentioned brand.
+3. Create a Markdown table showing average price (AED), year, and mileage for each model.
+4. Then, provide **a short analysis**, highlighting:
+   - Which models tend to be the most expensive and why?
+   - Which ones appear to be high mileage vs low mileage?
+   - Any interesting market trend (e.g., newer models dropping in price, older models still expensive, etc.)
+5. If relevant, give recommendations (e.g., which model offers best value based on price vs mileage vs year).
+
+Use the following dataset (columns: Brand, Model, Year, Price, Kilometers):
 
 {prompt_data.to_csv(index=False)}
 """
