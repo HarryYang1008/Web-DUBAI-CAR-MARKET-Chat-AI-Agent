@@ -99,7 +99,6 @@ Please:
 4. Suggest which segments (brands/models) offer the best value.
 5. Write like you're briefing a business executive team in simple, clear terms.
 6. Based on the analysis, provide practical suggestions for buyers (e.g., which brands or years offer the best value, which to avoid, etc.)
-
 """
 
                 else:
@@ -114,23 +113,40 @@ Please:
                         prompt_data = data.sample(min(100, len(data)))
                         st.info(f"⚠️ No specific brand detected. Using random sample of {len(prompt_data)} records.")
 
+                    brand_group = prompt_data.groupby("Brand").agg({
+                        "Price": "mean",
+                        "Year": "mean",
+                        "Kilometers": "mean"
+                    }).reset_index()
+
+                    model_group = prompt_data.groupby(["Brand", "Model"]).agg({
+                        "Price": "mean",
+                        "Year": "mean",
+                        "Kilometers": "mean"
+                    }).reset_index()
+                    model_group.columns = ["Brand", "Model", "Avg Price", "Avg Year", "Avg Km"]
+
                     prompt = f"""
 You are a professional car market analyst in Dubai.
 
 A user asked: "{user_question}"
 
+Here is the dataset filtered by brand(s): {', '.join(matched_brands)}.
+
+First, a brand-level summary:
+
+{brand_group.to_markdown(index=False)}
+
+Then, model-level details:
+
+{model_group.to_markdown(index=False)}
+
 Please perform the following:
-
-1. Compare all mentioned brands ({', '.join(matched_brands) if matched_brands else 'selected sample'}).
-2. Create a Markdown table showing for each brand: average price, average year, and mileage.
-3. Then analyze differences between them, especially which brand tends to have newer or cheaper listings.
-4. Provide a short summary recommendation.
-5. Based on the analysis, provide practical suggestions for buyers (e.g., which brands or years offer the best value, which to avoid, etc.)
-
-
-Use the dataset below:
-
-{prompt_data.to_csv(index=False)}
+1. Compare all mentioned brands and their models.
+2. Create Markdown tables and highlight differences in price, age, mileage.
+3. Analyze differences between the models and which stand out.
+4. Provide summary recommendation.
+5. Based on the analysis, provide practical suggestions for buyers (e.g., which models or years offer the best value, which to avoid, etc.)
 """
 
                 # GPT 调用
