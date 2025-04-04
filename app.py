@@ -10,12 +10,12 @@ st.set_page_config(page_title="Dubai Car Market Q&A", layout="wide")
 st.title("🚗 Dubai Used Car Price Assistant")
 
 # ---------------------- 🔘 文件信息弹窗按钮 ----------------------
-if st.button("🗂️ Show Data File Info"):
-    with st.modal("📄 Loaded File Info", close_on_click=True):
-        if "current_filename" in st.session_state:
-            st.write(f"**Current file name:** `{st.session_state['current_filename']}`")
-        else:
-            st.warning("No file has been loaded yet.")
+with st.expander("🗂️ Show Data File Info"):
+    if "current_filename" in st.session_state:
+        st.write(f"**Current file name:** `{st.session_state['current_filename']}`")
+    else:
+        st.warning("No file has been loaded yet.")
+
 # ---------------------------------------------------------------
 
 # ---------------------- 🔽 数据来源选择 ------------------------
