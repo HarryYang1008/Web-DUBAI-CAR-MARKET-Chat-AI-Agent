@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
-import openai
 import os
-import io
+from openai import OpenAI
 
-# 设置 OpenAI API 密钥（在 Streamlit Cloud 上设置环境变量 OPENAI_API_KEY）
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# 初始化 OpenAI 客户端
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 st.set_page_config(page_title="Dubai Car Market Q&A", layout="wide")
 st.title("🚗 Dubai Used Car Price Assistant")
@@ -33,12 +32,10 @@ if uploaded_file is not None:
             if not all(col in df.columns for col in target_cols):
                 st.error(f"Missing required columns in uploaded file: {target_cols}")
             else:
-                # 清洗数据用于摘要
                 filtered_df = df[target_cols].dropna().copy()
                 filtered_df['Price'] = filtered_df['Price'].astype(str).str.replace(",", "").str.extract('(\d+)').astype(float)
                 filtered_df['Kilometers'] = filtered_df['Kilometers'].astype(str).str.replace(",", "").str.extract('(\d+)').astype(float)
 
-                # 限制分析行数，避免 prompt 太长
                 sample_df = filtered_df.sample(min(100, len(filtered_df)))
 
                 # 构建 Prompt
@@ -54,7 +51,8 @@ Here is the dataset (Brand, Model, Year, Price in AED, Kilometers):
 Return a clear summary and use Markdown tables if helpful.
 """
 
-                response = openai.ChatCompletion.create(
+                # 使用新版 OpenAI SDK 发送请求
+                response = client.chat.completions.create(
                     model="gpt-4",
                     messages=[
                         {"role": "system", "content": "You are a data analyst specialized in car market trends in Dubai."},
@@ -65,4 +63,4 @@ Return a clear summary and use Markdown tables if helpful.
                 )
 
                 st.markdown("### 📊 Analysis Result")
-                st.markdown(response['choices'][0]['message']['content'])
+                st.markdown(response.choices[0].message.content)
