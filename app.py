@@ -91,14 +91,18 @@ You are a car market assistant in Dubai.
 
 A user asked: "{user_question}"
 
-Based on the filters in the question, identify relevant cars from the dataset.
+Step 1: Identify cars that match the filters below.
 
-Then:
-1. Summarize the matched listings by model and average price/year/km.
-2. Provide buyer suggestions: which models offer the best value?
-3. Provide seller advice: how to present and sell these listings effectively.
+Step 2: Summarize the matched cars by model, including their average price, year, and mileage.
 
-Dataset (filtered):
+Step 3: Write clear and helpful suggestions based on your analysis:
+
+- For BUYERS: Which models offer the best value for money, combining price, mileage and year?
+- For SELLERS: What should sellers emphasize in these listings? Which models are appealing and why?
+
+⚠️ Do NOT skip these suggestions. The user is a business decision-maker and needs your recommendations.
+
+Here is the dataset:
 
 {filtered_data.to_csv(index=False)}
 """
