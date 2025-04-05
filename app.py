@@ -58,8 +58,10 @@ if df is not None:
 
                 # 🚨 Condition 模式：自然语言筛选请求
                 if "condition" in user_question.lower():
-                    price_match = re.search(r'(?:under|below|less than)?\\s*\\$?(\\d{4,6})\\s*(?:to|-|and)?\\s*\\$?(\\d{4,6})?', user_question)
-                    km_match = re.search(r'(?:under|below|less than)?\\s*(\\d{2,3},?\\d{3})\\s*(?:km|kilometers)', user_question, re.IGNORECASE)
+                    price_match = re.search(r'(?:under|below|less than)?\s*\$?(\d{4,6})\s*(?:to|-|and)?\s*\$?(\d{4,6})?', user_question)
+
+                    km_match = re.search(r'(?:under|below|less than)?\s*(\d{2,3},?\d{3})\s*(?:km|kilometers)', user_question, re.IGNORECASE)
+
 
                     all_brands = data["Brand"].dropna().unique().tolist()
                     brand_selected = [b for b in all_brands if re.search(rf"\\b{re.escape(b)}\\b", user_question, re.IGNORECASE)]
