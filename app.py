@@ -93,9 +93,11 @@ A user asked: "{user_question}"
 
 Step 1: Identify cars that match the filters below.
 
-Step 2: Summarize the matched cars by model, including their average price, year, and mileage.
+Step 2: Create Markdown tables and highlight differences in price, age, mileage.Summarize the matched cars by model, including their average price, year, and mileage.
 
-Step 3: Write clear and helpful suggestions based on your analysis:
+Step 3: Summarize the matched cars by model, including their average price, year, and mileage.
+
+Step 4: Write clear and helpful suggestions based on your analysis:
 
 - For BUYERS: Which models offer the best value for money, combining price, mileage and year?
 - For SELLERS: What should sellers emphasize in these listings? Which models are appealing and why?
