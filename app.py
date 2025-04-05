@@ -203,7 +203,7 @@ Please perform the following:
                         {"role": "user", "content": prompt}
                     ],
                     temperature=0.3,
-                    max_tokens=1000
+                    max_tokens=5000
                 )
 
                 st.markdown("### 📊 GPT-4 Analysis Result")
