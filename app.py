@@ -10,14 +10,14 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 st.set_page_config(page_title="Dubai Car Market Q&A", layout="wide")
 st.title("🚗 Dubai Used Car Price Assistant")
 
-# ---------------------- 🔘 文件信息按钮 ----------------------
+# 📂 显示当前数据文件名
 with st.expander("📂 Show Data File Info"):
     if "current_filename" in st.session_state:
         st.write(f"**Current file name:** `{st.session_state['current_filename']}`")
     else:
         st.warning("No file has been loaded yet.")
 
-# ---------------------- 数据加载 ----------------------------
+# 📥 数据加载
 data_source = st.radio("Select data source", ["📂 Upload CSV", "🌐 Load from GitHub"])
 df = None
 
@@ -27,7 +27,6 @@ if data_source == "📂 Upload CSV":
         df = pd.read_csv(uploaded_file)
         st.session_state["current_filename"] = uploaded_file.name
         st.success(f"✅ Uploaded: {uploaded_file.name} ({df.shape[0]} rows)")
-
 elif data_source == "🌐 Load from GitHub":
     github_url = st.text_input("Paste raw GitHub CSV URL")
     if github_url:
@@ -39,14 +38,15 @@ elif data_source == "🌐 Load from GitHub":
         except Exception as e:
             st.error(f"❌ Failed to load from GitHub: {e}")
 
+# 🧠 用户提问处理逻辑
 if df is not None:
     with st.expander("🔍 Preview Data"):
         st.dataframe(df.head())
 
-    user_question = st.text_input("Ask a question about the car market:", placeholder="e.g., What Audi models are available?")
+    user_question = st.text_input("Ask a question about the car market:", placeholder="e.g., condition: under 120000km, BMW or Lexus, below 90k AED")
 
     if user_question and st.button("🔎 Analyze"):
-        with st.spinner("Analyzing data with GPT-4..."):
+        with st.spinner("Analyzing data with GPT-4o..."):
 
             required_cols = ['Brand', 'Model', 'Price', 'Year', 'Kilometers']
             if not all(col in df.columns for col in required_cols):
@@ -56,17 +56,59 @@ if df is not None:
                 data['Price'] = data['Price'].astype(str).str.replace(",", "").str.extract('(\d+)').astype(float)
                 data['Kilometers'] = data['Kilometers'].astype(str).str.replace(",", "").str.extract('(\d+)').astype(float)
 
-                general_keywords = ['overall', 'market', 'all brands', 'general trend', 'whole market', 'total', '总览', '整体', '全部', '所有', '市场', '平均']
-                is_general = any(kw.lower() in user_question.lower() for kw in general_keywords)
+                # 🚨 Condition 模式：自然语言筛选请求
+                if "condition" in user_question.lower():
+                    price_match = re.search(r'(?:under|below|less than)?\\s*\\$?(\\d{4,6})\\s*(?:to|-|and)?\\s*\\$?(\\d{4,6})?', user_question)
+                    km_match = re.search(r'(?:under|below|less than)?\\s*(\\d{2,3},?\\d{3})\\s*(?:km|kilometers)', user_question, re.IGNORECASE)
 
-                if is_general:
+                    all_brands = data["Brand"].dropna().unique().tolist()
+                    brand_selected = [b for b in all_brands if re.search(rf"\\b{re.escape(b)}\\b", user_question, re.IGNORECASE)]
+
+                    price_min, price_max, km_limit = None, None, None
+                    if price_match:
+                        price_min = float(price_match.group(1).replace(',', ''))
+                        if price_match.group(2):
+                            price_max = float(price_match.group(2).replace(',', ''))
+                    if km_match:
+                        km_limit = float(km_match.group(1).replace(',', ''))
+
+                    filtered_data = data.copy()
+                    if price_min:
+                        filtered_data = filtered_data[filtered_data["Price"] >= price_min]
+                    if price_max:
+                        filtered_data = filtered_data[filtered_data["Price"] <= price_max]
+                    if km_limit:
+                        filtered_data = filtered_data[filtered_data["Kilometers"] <= km_limit]
+                    if brand_selected:
+                        filtered_data = filtered_data[filtered_data["Brand"].isin(brand_selected)]
+
+                    st.info(f"🔍 Detected conditions → Price: {price_min}-{price_max}, KM: {km_limit}, Brands: {', '.join(brand_selected) if brand_selected else 'Not specified'}")
+
+                    prompt = f"""
+You are a car market assistant in Dubai.
+
+A user asked: "{user_question}"
+
+Based on the filters in the question, identify relevant cars from the dataset.
+
+Then:
+1. Summarize the matched listings by model and average price/year/km.
+2. Provide buyer suggestions: which models offer the best value?
+3. Provide seller advice: how to present and sell these listings effectively.
+
+Dataset (filtered):
+
+{filtered_data.to_csv(index=False)}
+"""
+
+                # 🌍 全局市场趋势模式
+                elif any(kw in user_question.lower() for kw in ['overall', 'market', 'all brands', 'general trend', 'whole market', 'total', '总览', '整体', '全部', '所有', '市场', '平均']):
                     brand_summary = data.groupby("Brand").agg({
                         "Model": "nunique",
                         "Price": ["mean", "min", "max"],
                         "Year": "mean",
                         "Kilometers": "mean"
                     }).reset_index()
-
                     brand_summary.columns = ['Brand', 'Model Count', 'Avg Price', 'Min Price', 'Max Price', 'Avg Year', 'Avg Km']
 
                     overall = pd.DataFrame({
@@ -101,28 +143,24 @@ Please:
 6. Based on the analysis, provide practical suggestions for buyers (e.g., which brands or years offer the best value, which to avoid, etc.)
 """
 
+                # 🚗 指定品牌分析
                 else:
-                    brands = data["Brand"].dropna().unique().tolist()
-                    matched_brands = [brand for brand in brands if re.search(rf"\b{re.escape(brand)}\b", user_question, re.IGNORECASE)]
+                    all_brands = data["Brand"].dropna().unique().tolist()
+                    matched_brands = [brand for brand in all_brands if re.search(rf"\\b{re.escape(brand)}\\b", user_question, re.IGNORECASE)]
 
                     if matched_brands:
-                        filtered = data[data["Brand"].str.contains('|'.join(re.escape(b) for b in matched_brands), case=False)]
-                        prompt_data = filtered
-                        st.info(f"📌 Detected brands: {', '.join(matched_brands)}. Analyzing {len(filtered)} records.")
+                        prompt_data = data[data["Brand"].str.contains('|'.join(re.escape(b) for b in matched_brands), case=False)]
+                        st.info(f"📌 Detected brands: {', '.join(matched_brands)}. Analyzing {len(prompt_data)} records.")
                     else:
                         prompt_data = data.sample(min(100, len(data)))
                         st.info(f"⚠️ No specific brand detected. Using random sample of {len(prompt_data)} records.")
 
                     brand_group = prompt_data.groupby("Brand").agg({
-                        "Price": "mean",
-                        "Year": "mean",
-                        "Kilometers": "mean"
+                        "Price": "mean", "Year": "mean", "Kilometers": "mean"
                     }).reset_index()
 
                     model_group = prompt_data.groupby(["Brand", "Model"]).agg({
-                        "Price": "mean",
-                        "Year": "mean",
-                        "Kilometers": "mean"
+                        "Price": "mean", "Year": "mean", "Kilometers": "mean"
                     }).reset_index()
                     model_group.columns = ["Brand", "Model", "Avg Price", "Avg Year", "Avg Km"]
 
@@ -131,7 +169,7 @@ You are a professional car market analyst in Dubai.
 
 A user asked: "{user_question}"
 
-Here is the dataset filtered by brand(s): {', '.join(matched_brands)}.
+Here is the dataset filtered by brand(s): {', '.join(matched_brands) if matched_brands else 'Random Sample'}.
 
 First, a brand-level summary:
 
@@ -149,7 +187,7 @@ Please perform the following:
 5. Based on the analysis, provide practical suggestions for buyers (e.g., which models or years offer the best value, which to avoid, etc.)
 """
 
-                # GPT 调用
+                # 🔁 调用 OpenAI
                 response = client.chat.completions.create(
                     model="gpt-4o",
                     messages=[
