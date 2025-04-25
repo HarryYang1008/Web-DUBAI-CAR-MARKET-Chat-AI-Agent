@@ -159,7 +159,7 @@ Here is the dataset:
                             if not is_showroom:
                                 df_temp["Date"] = pd.to_datetime(df_temp["Date"], errors="coerce")
 
-                            df_temp["Date"] = pd.to_datetime(df_temp["Date"], errors="coerce")
+                            
                             df_temp["Brand"] = df_temp["Brand"].astype(str)
                             df_temp["Model"] = df_temp["Model"].astype(str)
                             df_temp["Price"] = df_temp["Price"].astype(str).str.replace(",", "").str.extract(r"(\d+)").astype(float)
