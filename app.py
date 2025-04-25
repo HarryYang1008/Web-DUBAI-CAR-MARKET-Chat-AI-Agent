@@ -191,18 +191,7 @@ Please:
 3. Comment on whether average manufacturing year is getting newer or older.
 4. Make recommendations for buyers based on these trends.
 """
-                                    response = client.chat.completions.create(
-                                        model="gpt-4o",
-                                        messages=[
-                                            {"role": "system", "content": "You are a data analyst specialized in car market trends in Dubai."},
-                                            {"role": "user", "content": trend_prompt}
-                                        ],
-                                        temperature=0.3,
-                                        max_tokens=3000
-                                    )
-                                    st.markdown("### 📊 Historical Trend GPT Analysis")
-                                    st.markdown(response.choices[0].message.content)
-
+                                   
                 # 🌍 全局市场趋势模式
                 elif any(kw in user_question.lower() for kw in ['overall', 'market', 'all brands', 'general trend', 'whole market', 'total', '总览', '整体', '全部', '所有', '市场', '平均']):
                     brand_summary = data.groupby("Brand").agg({
@@ -302,3 +291,4 @@ Please perform the following:
 
                 st.markdown("### 📊 GPT-4 Analysis Result")
                 st.markdown(response.choices[0].message.content)
+                
