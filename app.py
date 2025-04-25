@@ -155,6 +155,12 @@ Here is the dataset:
                             df_temp["Date"] = pd.to_datetime(df_temp["Date"], errors="coerce")
                             df_temp["Brand"] = df_temp["Brand"].astype(str)
                             df_temp["Model"] = df_temp["Model"].astype(str)
+                            # ⏬ 年份过滤机制：如果存在 year- 触发词
+                            year_match = re.search(r'year-[\'"]?([\d,\s]+)[\'"]?', user_question, re.IGNORECASE)
+                            if year_match:
+                                year_list = [int(y.strip()) for y in year_match.group(1).split(",") if y.strip().isdigit()]
+                                df_filtered = df_filtered[df_filtered["Year"].isin(year_list)]
+
                             df_temp["Price"] = df_temp["Price"].astype(str).str.replace(",", "").str.extract(r"(\d+)").astype(float)
                             df_temp["Kilometers"] = df_temp["Kilometers"].astype(str).str.replace(",", "").str.extract(r"(\d+)").astype(float)
 
