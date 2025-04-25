@@ -347,49 +347,6 @@ Here is the dataset:
                     st.markdown(response.choices[0].message.content)
                     st.stop()
 
-                                   
-                # 🌍 全局市场趋势模式
-                elif any(kw in user_question.lower() for kw in ['overall', 'market', 'all brands', 'general trend', 'whole market', 'total', '总览', '整体', '全部', '所有', '市场', '平均']):
-                    brand_summary = data.groupby("Brand").agg({
-                        "Model": "nunique",
-                        "Price": ["mean", "min", "max"],
-                        "Year": "mean",
-                        "Kilometers": "mean"
-                    }).reset_index()
-                    brand_summary.columns = ['Brand', 'Model Count', 'Avg Price', 'Min Price', 'Max Price', 'Avg Year', 'Avg Km']
-
-                    overall = pd.DataFrame({
-                        'Brand': ['Overall'],
-                        'Model Count': [brand_summary['Model Count'].sum()],
-                        'Avg Price': [data['Price'].mean()],
-                        'Min Price': [data['Price'].min()],
-                        'Max Price': [data['Price'].max()],
-                        'Avg Year': [data['Year'].mean()],
-                        'Avg Km': [data['Kilometers'].mean()]
-                    })
-
-                    brand_summary = pd.concat([brand_summary, overall], ignore_index=True)
-
-                    prompt = f"""
-You are a professional automotive market analyst in Dubai.
-
-The user asked: "{user_question}"
-
-Here is a summary of the entire used car dataset (10,000+ records), generated from real data.
-
-Brand-level statistics including an overall row at the bottom:
-
-{brand_summary.to_markdown(index=False)}
-
-Please:
-1. Identify major market trends across price, mileage, and year.
-2. Highlight which brands are high-end vs affordable.
-3. Comment on how mileage correlates with price or year.
-4. Suggest which segments (brands/models) offer the best value.
-5. Write like you're briefing a business executive team in simple, clear terms.
-6. Based on the analysis, provide practical suggestions for buyers (e.g., which brands or years offer the best value, which to avoid, etc.)
-"""
-
                 # 🚗 品牌市场分析模块（新触发逻辑：brand market + brand-"XXX" 格式）
                 elif "brand market" in user_question.lower():
                     brand_match = re.search(r'brand-[\'"]?([\w\s\-]+)[\'"]?', user_question, re.IGNORECASE)
@@ -448,5 +405,52 @@ Please perform the following:
 
                     st.markdown("### 📊 GPT-4 Analysis Result")
                     st.markdown(response.choices[0].message.content)
+
+
+                    
+                                       
+                # 🌍 全局市场趋势模式
+                elif any(kw in user_question.lower() for kw in ['overall', 'market', 'all brands', 'general trend', 'whole market', 'total', '总览', '整体', '全部', '所有', '市场', '平均']):
+                    brand_summary = data.groupby("Brand").agg({
+                        "Model": "nunique",
+                        "Price": ["mean", "min", "max"],
+                        "Year": "mean",
+                        "Kilometers": "mean"
+                    }).reset_index()
+                    brand_summary.columns = ['Brand', 'Model Count', 'Avg Price', 'Min Price', 'Max Price', 'Avg Year', 'Avg Km']
+
+                    overall = pd.DataFrame({
+                        'Brand': ['Overall'],
+                        'Model Count': [brand_summary['Model Count'].sum()],
+                        'Avg Price': [data['Price'].mean()],
+                        'Min Price': [data['Price'].min()],
+                        'Max Price': [data['Price'].max()],
+                        'Avg Year': [data['Year'].mean()],
+                        'Avg Km': [data['Kilometers'].mean()]
+                    })
+
+                    brand_summary = pd.concat([brand_summary, overall], ignore_index=True)
+
+                    prompt = f"""
+You are a professional automotive market analyst in Dubai.
+
+The user asked: "{user_question}"
+
+Here is a summary of the entire used car dataset (10,000+ records), generated from real data.
+
+Brand-level statistics including an overall row at the bottom:
+
+{brand_summary.to_markdown(index=False)}
+
+Please:
+1. Identify major market trends across price, mileage, and year.
+2. Highlight which brands are high-end vs affordable.
+3. Comment on how mileage correlates with price or year.
+4. Suggest which segments (brands/models) offer the best value.
+5. Write like you're briefing a business executive team in simple, clear terms.
+6. Based on the analysis, provide practical suggestions for buyers (e.g., which brands or years offer the best value, which to avoid, etc.)
+"""
+
+                
 
                 
