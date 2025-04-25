@@ -284,27 +284,28 @@ Here is the dataset:
                         x_min = history_df["Date"].min()
                         x_max = history_df["Date"].max()
 
-                        # 只有当日期是有效的 timestamp 时才渲染
-                        if pd.notnull(x_min) and pd.notnull(x_max):
-                            showroom_lines = alt.Chart(showroom_df).mark_rule(
-                                color='gold',
-                                strokeDash=[3, 3]
-                            ).encode(
-                                x=alt.XValue(x_min),
-                                x2=alt.X2Value(x_max),
-                                y='Price:Q',
-                                tooltip=[
-                                    alt.Tooltip('Price:Q'),
-                                    alt.Tooltip('Kilometers:Q'),
-                                    alt.Tooltip('Year:Q')
-                                ]
-                            )
-                            combined_chart = point_chart + median_line + median_point + showroom_lines
-                        else:
-                            st.warning("⚠️ Market data does not contain valid dates. Showroom price lines skipped.")
-                            combined_chart = point_chart + median_line + median_point
+                        # 修正方式：用 transform_calculate 为每条 showroom 数据横跨整个图宽度
+                        showroom_df["x_start"] = x_min
+                        showroom_df["x_end"] = x_max
+
+                        showroom_lines = alt.Chart(showroom_df).mark_rule(
+                            color='gold',
+                            strokeDash=[3, 3]
+                        ).encode(
+                            x='x_start:T',
+                            x2='x_end:T',
+                            y='Price:Q',
+                            tooltip=[
+                                alt.Tooltip('Price:Q', title="Showroom Price"),
+                                alt.Tooltip('Kilometers:Q'),
+                                alt.Tooltip('Year:Q')
+                            ]
+                        )
+
+                        combined_chart = point_chart + median_line + median_point + showroom_lines
                     else:
                         combined_chart = point_chart + median_line + median_point
+
                     
                     # 📈 显示图表
                     st.altair_chart(combined_chart.properties(
