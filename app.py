@@ -23,7 +23,7 @@ df = None
 
 if data_source == "📂 Upload CSV":
     uploaded_files = st.file_uploader("Upload one or more CSVs", type=["csv"], accept_multiple_files=True)
-df = None
+
 
 if uploaded_files:
     dated_dfs = []
