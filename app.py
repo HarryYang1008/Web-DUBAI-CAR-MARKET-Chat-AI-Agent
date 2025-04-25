@@ -414,26 +414,26 @@ Please:
                     model_group.columns = ["Brand", "Model", "Avg Price", "Avg Year", "Avg Km"]
 
                     prompt = f"""
-                You are a professional car market analyst in Dubai.
+You are a professional car market analyst in Dubai.
 
-                A user asked: "{user_question}"
+A user asked: "{user_question}"
 
-                Here is the dataset filtered by brand(s): {', '.join(matched_brands) if matched_brands else 'Random Sample'}.
+Here is the dataset filtered by brand(s): {', '.join(matched_brands) if matched_brands else 'Random Sample'}.
 
-                First, a brand-level summary:
+First, a brand-level summary:
 
-                {brand_group.to_markdown(index=False)}
+{brand_group.to_markdown(index=False)}
 
-                Then, model-level details:
+Then, model-level details:
 
-                {model_group.to_markdown(index=False)}
+{model_group.to_markdown(index=False)}
 
-                Please perform the following:
-                1. Compare all mentioned brands and their models.
-                2. Create Markdown tables and highlight differences in price, age, mileage.
-                3. Analyze differences between the models and which stand out.
-                4. Provide summary recommendation.
-                5. Based on the analysis, provide practical suggestions for buyers (e.g., which models or years offer the best value, which to avoid, etc.)
+Please perform the following:
+1. Compare all mentioned brands and their models.
+2. Create Markdown tables and highlight differences in price, age, mileage.
+3. Analyze differences between the models and which stand out.
+4. Provide summary recommendation.
+5. Based on the analysis, provide practical suggestions for buyers (e.g., which models or years offer the best value, which to avoid, etc.)
                 """
 
                     response = client.chat.completions.create(
