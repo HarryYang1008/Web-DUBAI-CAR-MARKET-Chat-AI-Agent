@@ -150,9 +150,14 @@ Here is the dataset:
 
                             is_showroom = "showroom" in f.name.lower()
 
+                            # ✅ 只有市场数据强制检查 Date 字段
                             if not is_showroom and "Date" not in df_temp.columns:
                                 st.warning(f"⚠️ Skipped file {f.name}: No 'Date' column.")
                                 continue
+
+                            # ✅ 仅市场数据转换 Date 列
+                            if not is_showroom:
+                                df_temp["Date"] = pd.to_datetime(df_temp["Date"], errors="coerce")
 
                             df_temp["Date"] = pd.to_datetime(df_temp["Date"], errors="coerce")
                             df_temp["Brand"] = df_temp["Brand"].astype(str)
