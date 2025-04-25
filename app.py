@@ -148,7 +148,9 @@ Here is the dataset:
                             f.seek(0)
                             df_temp = pd.read_csv(f, encoding="utf-8-sig")
 
-                            if "Date" not in df_temp.columns:
+                            is_showroom = "showroom" in f.name.lower()
+
+                            if not is_showroom and "Date" not in df_temp.columns:
                                 st.warning(f"⚠️ Skipped file {f.name}: No 'Date' column.")
                                 continue
 
