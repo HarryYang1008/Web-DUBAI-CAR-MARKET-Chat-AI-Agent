@@ -71,6 +71,8 @@ if df is not None:
                 data['Price'] = data['Price'].astype(str).str.replace(",", "").str.extract('(\d+)').astype(float)
                 data['Kilometers'] = data['Kilometers'].astype(str).str.replace(",", "").str.extract('(\d+)').astype(float)
 
+# ================================================================================================================================================ #
+
                 # 🚨 Condition 模式：自然语言筛选请求
                 if "condition" in user_question.lower():
                     price_match = re.search(r'(?:under|below|less than)?\s*\$?(\d{4,6})\s*(?:to|-|and)?\s*\$?(\d{4,6})?', user_question)
@@ -123,6 +125,9 @@ Here is the dataset:
 
 {filtered_data.to_csv(index=False)}
 """
+                    
+# ================================================================================================================================================ #
+
                  # 📈 新模式：历史趋势图分析
                 elif "history line" in user_question.lower():
                     # 🧠 新版引号匹配
@@ -347,6 +352,8 @@ Here is the dataset:
                     st.markdown(response.choices[0].message.content)
                     st.stop()
 
+# ================================================================================================================================================ #
+
                 # 🚗 品牌市场分析模块（新触发逻辑：brand market + brand-"XXX" 格式）
                 elif "brand market" in user_question.lower():
                     brand_match = re.search(r'brand-[\'"]?([\w\s\-]+)[\'"]?', user_question, re.IGNORECASE)
@@ -366,9 +373,14 @@ Here is the dataset:
                     }).reset_index()
 
                     model_group = prompt_data.groupby(["Brand", "Model"]).agg({
-                        "Price": "mean", "Year": "mean", "Kilometers": "mean"
-                    }).reset_index()
-                    model_group.columns = ["Brand", "Model", "Avg Price", "Avg Year", "Avg Km"]
+                        "Price": "mean",
+                        "Year": "mean",
+                        "Kilometers": "mean",
+                        "Model": "count"
+                    }).rename(columns={"Model": "Count"}).reset_index()
+
+                    model_group.columns = ["Brand", "Model", "Avg Price", "Avg Year", "Avg Km", "Count"]
+
 
                     prompt = f"""
 You are a professional car market analyst in Dubai.
@@ -407,8 +419,9 @@ Please perform the following:
                     st.markdown(response.choices[0].message.content)
 
 
-                    
-                                       
+
+# ================================================================================================================================================ #
+
                 # 🌍 全局市场趋势模式
                 elif any(kw in user_question.lower() for kw in ['overall', 'market', 'all brands', 'general trend', 'whole market', 'total', '总览', '整体', '全部', '所有', '市场', '平均']):
                     brand_summary = data.groupby("Brand").agg({
