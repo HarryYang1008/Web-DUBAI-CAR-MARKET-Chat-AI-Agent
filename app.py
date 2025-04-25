@@ -390,17 +390,19 @@ Please:
 6. Based on the analysis, provide practical suggestions for buyers (e.g., which brands or years offer the best value, which to avoid, etc.)
 """
 
-                # 🚗 指定品牌分析
-                else:
-                    all_brands = data["Brand"].dropna().unique().tolist()
-                    matched_brands = [brand for brand in all_brands if re.search(rf"\\b{re.escape(brand)}\\b", user_question, re.IGNORECASE)]
+                # 🚗 品牌市场分析模块（新触发逻辑：brand market + brand-"XXX" 格式）
+                elif "brand market" in user_question.lower():
+                    brand_match = re.search(r'brand-[\'"]?([\w\s\-]+)[\'"]?', user_question, re.IGNORECASE)
 
-                    if matched_brands:
-                        prompt_data = data[data["Brand"].str.contains('|'.join(re.escape(b) for b in matched_brands), case=False)]
-                        st.info(f"📌 Detected brands: {', '.join(matched_brands)}. Analyzing {len(prompt_data)} records.")
-                    else:
+                    if not brand_match:
+                        st.warning("⚠️ Could not detect brand from your query. Please use format like: brand market brand-\"Toyota\"")
                         prompt_data = data.sample(min(100, len(data)))
-                        st.info(f"⚠️ No specific brand detected. Using random sample of {len(prompt_data)} records.")
+                        matched_brands = []
+                    else:
+                        brand_name = brand_match.group(1).strip()
+                        matched_brands = [brand_name]
+                        prompt_data = data[data["Brand"].str.lower().str.contains(brand_name.lower(), na=False)]
+                        st.info(f"📌 Detected brand: {brand_name}. Analyzing {len(prompt_data)} records.")
 
                     brand_group = prompt_data.groupby("Brand").agg({
                         "Price": "mean", "Year": "mean", "Kilometers": "mean"
@@ -412,39 +414,39 @@ Please:
                     model_group.columns = ["Brand", "Model", "Avg Price", "Avg Year", "Avg Km"]
 
                     prompt = f"""
-You are a professional car market analyst in Dubai.
+                You are a professional car market analyst in Dubai.
 
-A user asked: "{user_question}"
+                A user asked: "{user_question}"
 
-Here is the dataset filtered by brand(s): {', '.join(matched_brands) if matched_brands else 'Random Sample'}.
+                Here is the dataset filtered by brand(s): {', '.join(matched_brands) if matched_brands else 'Random Sample'}.
 
-First, a brand-level summary:
+                First, a brand-level summary:
 
-{brand_group.to_markdown(index=False)}
+                {brand_group.to_markdown(index=False)}
 
-Then, model-level details:
+                Then, model-level details:
 
-{model_group.to_markdown(index=False)}
+                {model_group.to_markdown(index=False)}
 
-Please perform the following:
-1. Compare all mentioned brands and their models.
-2. Create Markdown tables and highlight differences in price, age, mileage.
-3. Analyze differences between the models and which stand out.
-4. Provide summary recommendation.
-5. Based on the analysis, provide practical suggestions for buyers (e.g., which models or years offer the best value, which to avoid, etc.)
-"""
+                Please perform the following:
+                1. Compare all mentioned brands and their models.
+                2. Create Markdown tables and highlight differences in price, age, mileage.
+                3. Analyze differences between the models and which stand out.
+                4. Provide summary recommendation.
+                5. Based on the analysis, provide practical suggestions for buyers (e.g., which models or years offer the best value, which to avoid, etc.)
+                """
 
-                # 🔁 调用 OpenAI
-                response = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": "You are a data analyst specialized in car market trends in Dubai."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.3,
-                    max_tokens=5000
-                )
+                    response = client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[
+                            {"role": "system", "content": "You are a data analyst specialized in car market trends in Dubai."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.3,
+                        max_tokens=5000
+                    )
 
-                st.markdown("### 📊 GPT-4 Analysis Result")
-                st.markdown(response.choices[0].message.content)
+                    st.markdown("### 📊 GPT-4 Analysis Result")
+                    st.markdown(response.choices[0].message.content)
+
                 
