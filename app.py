@@ -180,15 +180,26 @@ Here is the dataset:
                     history_df = pd.concat(all_history_df)
                     history_df.sort_values("Date", inplace=True)
 
-                    st.subheader("📈 Price Over Time")
-                    st.line_chart(history_df[["Date", "Price"]].set_index("Date"))
+                    import altair as alt
 
-                    st.subheader("📉 Kilometers Over Time")
-                    st.line_chart(history_df[["Date", "Kilometers"]].set_index("Date"))
+                    st.subheader("📈 Median Price Trend Over Time")
 
-                    st.subheader("📊 Average Year Over Time")
-                    year_avg = history_df.groupby("Date")["Year"].mean().reset_index()
-                    st.line_chart(year_avg.set_index("Date"))
+                    # 计算每日中位数价格
+                    median_df = history_df.groupby("Date")["Price"].median().reset_index()
+
+                    # 使用 Altair 绘制红点 + 连线图
+                    chart = alt.Chart(median_df).mark_line(point=alt.OverlayMarkDef(color='red')).encode(
+                        x=alt.X('Date:T', title='Date'),
+                        y=alt.Y('Price:Q', title='Median Price (AED)'),
+                        tooltip=['Date:T', 'Price:Q']
+                    ).properties(
+                        width=700,
+                        height=400
+                    ).interactive()
+
+                    st.altair_chart(chart, use_container_width=True)
+
+
 
                     trend_prompt = f"""
                 You are a professional automotive data analyst in Dubai.
