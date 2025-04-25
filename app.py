@@ -130,91 +130,97 @@ Here is the dataset:
 
                     if not brand_match or not model_match:
                         st.error("❌ Format must be like: 'history line brand-Toyota model-Camry'")
-                    else:
-                        brand = brand_match.group(1).strip()
-                        model = model_match.group(1).strip()
-                        st.info(f"📌 Searching historical trend for **{brand} {model}**")
+                        st.stop()
 
-                        if 'uploaded_files' not in st.session_state or not st.session_state['uploaded_files']:
-                            st.error("❌ No history files uploaded.")
-                            st.stop() 
+                    brand = brand_match.group(1).strip()
+                    model = model_match.group(1).strip()
+                    st.info(f"📌 Searching historical trend for **{brand} {model}**")
 
-                        else:
-                            all_history_df = []
-                            for f in st.session_state['uploaded_files']:
-                                try:
-                                    f.seek(0)  # ✅ Reset pointer
-                                    df_temp = pd.read_csv(f, encoding='utf-8-sig')
+                    if "uploaded_files" not in st.session_state or not st.session_state["uploaded_files"]:
+                        st.error("❌ No history files uploaded. Please upload multiple dated CSVs.")
+                        st.stop()
 
-                                    if "Date" not in df_temp.columns:
-                                        st.warning(f"⚠️ Skipped {f.name}: Missing 'Date' column.")
-                                        continue
+                    all_history_df = []
 
-                                    df_temp["Date"] = pd.to_datetime(df_temp["Date"], errors='coerce')
-                                    df_temp["Brand"] = df_temp["Brand"].astype(str)
-                                    df_temp["Model"] = df_temp["Model"].astype(str)
-                                    df_temp["Price"] = df_temp["Price"].astype(str).str.replace(",", "").str.extract(r'(\d+)').astype(float)
-                                    df_temp["Kilometers"] = df_temp["Kilometers"].astype(str).str.replace(",", "").str.extract(r'(\d+)').astype(float)
+                    for f in st.session_state["uploaded_files"]:
+                        try:
+                            f.seek(0)  # 必须重置文件指针
+                            df_temp = pd.read_csv(f, encoding="utf-8-sig")
 
-                                    all_history_df.append(df_temp)
-                                except Exception as e:
-                                    st.warning(f"⚠️ Skipped file {f.name}: {e}")
+                            if "Date" not in df_temp.columns:
+                                st.warning(f"⚠️ Skipped file {f.name}: No 'Date' column.")
+                                continue
 
-                            if not all_history_df:
-                                st.warning("⚠️ No valid files with Date column found.")
-                            else:
-                                history_df = pd.concat(all_history_df)
-                                filtered = history_df[
-                                    (history_df["Brand"].str.lower() == brand.lower()) &
-                                    (history_df["Model"].str.lower() == model.lower())
-                                ].copy()
+                            df_temp["Date"] = pd.to_datetime(df_temp["Date"], errors="coerce")
+                            df_temp["Brand"] = df_temp["Brand"].astype(str)
+                            df_temp["Model"] = df_temp["Model"].astype(str)
+                            df_temp["Price"] = df_temp["Price"].astype(str).str.replace(",", "").str.extract(r"(\d+)").astype(float)
+                            df_temp["Kilometers"] = df_temp["Kilometers"].astype(str).str.replace(",", "").str.extract(r"(\d+)").astype(float)
 
-                                if filtered.empty:
-                                    st.warning("No records found for the given brand and model.")
-                                else:
-                                    filtered.sort_values("Date", inplace=True)
+                            all_history_df.append(df_temp)
+                        except Exception as e:
+                            st.warning(f"⚠️ Skipped file {f.name}: {e}")
 
-                                    st.subheader("📈 Price Over Time")
-                                    st.line_chart(filtered[["Date", "Price"]].set_index("Date"))
+                    if not all_history_df:
+                        st.warning("⚠️ No valid files with Date column found.")
+                        st.stop()
 
-                                    st.subheader("📉 Kilometers Over Time")
-                                    st.line_chart(filtered[["Date", "Kilometers"]].set_index("Date"))
+                    history_df = pd.concat(all_history_df)
 
-                                    st.subheader("📊 Average Year Over Time")
-                                    avg_year = filtered.groupby("Date")["Year"].mean().reset_index()
-                                    st.line_chart(avg_year.set_index("Date"))
+                    # ✅ 模糊匹配品牌+车型
+                    filtered = history_df[
+                        history_df["Brand"].str.lower().str.contains(brand.lower()) &
+                        history_df["Model"].str.lower().str.contains(model.lower())
+                    ].copy()
 
-                                    # ✨ 可选 GPT 分析 Prompt
-                                    trend_prompt = f"""
-You are a professional automotive data analyst in Dubai.
+                    if filtered.empty:
+                        st.warning("⚠️ No records found for the given brand and model.")
+                        st.write("📌 Available combinations preview:", history_df[["Brand", "Model"]].drop_duplicates().head(10))
+                        st.stop()
 
-A user requested a historical analysis with the following filters:
-Brand: {brand}
-Model: {model}
+                    filtered.sort_values("Date", inplace=True)
 
-Here is the historical dataset:
-{filtered.to_csv(index=False)}
+                    st.subheader("📈 Price Over Time")
+                    st.line_chart(filtered[["Date", "Price"]].set_index("Date"))
 
-Please:
-1. Identify whether the price is increasing or decreasing.
-2. Discuss how mileage trend evolves over time.
-3. Comment on whether average manufacturing year is getting newer or older.
-4. Make recommendations for buyers based on these trends.
-"""
-                                    response = client.chat.completions.create(
-                                    model="gpt-4o",
-                                    messages=[
-                                        {"role": "system", "content": "You are a data analyst specialized in car market trends in Dubai."},
-                                        {"role": "user", "content": trend_prompt}
-                                    ],
-                                    temperature=0.3,
-                                    max_tokens=3000
-                                )
+                    st.subheader("📉 Kilometers Over Time")
+                    st.line_chart(filtered[["Date", "Kilometers"]].set_index("Date"))
 
-                                st.markdown("### 📊 Historical Trend GPT Analysis")
-                                st.markdown(response.choices[0].message.content)
+                    st.subheader("📊 Average Year Over Time")
+                    year_avg = filtered.groupby("Date")["Year"].mean().reset_index()
+                    st.line_chart(year_avg.set_index("Date"))
 
-                                st.stop()
+                    trend_prompt = f"""
+                You are a professional automotive data analyst in Dubai.
+
+                A user requested a historical analysis with the following filters:
+                Brand: {brand}
+                Model: {model}
+
+                Here is the historical dataset:
+                {filtered.to_csv(index=False)}
+
+                Please:
+                1. Identify whether the price is increasing or decreasing.
+                2. Discuss how mileage trend evolves over time.
+                3. Comment on whether average manufacturing year is getting newer or older.
+                4. Make recommendations for buyers based on these trends.
+                """
+
+                    response = client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[
+                            {"role": "system", "content": "You are a data analyst specialized in car market trends in Dubai."},
+                            {"role": "user", "content": trend_prompt}
+                        ],
+                        temperature=0.3,
+                        max_tokens=3000
+                    )
+
+                    st.markdown("### 📊 Historical Trend GPT Analysis")
+                    st.markdown(response.choices[0].message.content)
+                    st.stop()
+
                                    
                 # 🌍 全局市场趋势模式
                 elif any(kw in user_question.lower() for kw in ['overall', 'market', 'all brands', 'general trend', 'whole market', 'total', '总览', '整体', '全部', '所有', '市场', '平均']):
