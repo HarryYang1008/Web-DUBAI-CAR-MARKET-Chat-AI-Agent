@@ -23,6 +23,9 @@ df = None
 
 if data_source == "📂 Upload CSV":
     uploaded_files = st.file_uploader("Upload one or more CSVs", type=["csv"], accept_multiple_files=True)
+    # ✅ 保存到 session_state，以便 history line 模式能识别
+    if uploaded_files:
+        st.session_state["uploaded_files"] = uploaded_files
 
 
 if uploaded_files:
