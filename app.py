@@ -22,11 +22,23 @@ data_source = st.radio("Select data source", ["📂 Upload CSV", "🌐 Load from
 df = None
 
 if data_source == "📂 Upload CSV":
-    uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
-    if uploaded_file:
-        df = pd.read_csv(uploaded_file)
-        st.session_state["current_filename"] = uploaded_file.name
-        st.success(f"✅ Uploaded: {uploaded_file.name} ({df.shape[0]} rows)")
+    uploaded_files = st.file_uploader("Upload one or more CSVs", type=["csv"], accept_multiple_files=True)
+df = None
+
+if uploaded_files:
+    dated_dfs = []
+    for file in uploaded_files:
+        try:
+            temp_df = pd.read_csv(file)
+            if "Date" in temp_df.columns:
+                temp_df["Date"] = pd.to_datetime(temp_df["Date"])
+                dated_dfs.append(temp_df)
+            if df is None:
+                df = temp_df  # 用第一个有效文件初始化显示
+                st.session_state["current_filename"] = file.name
+        except Exception as e:
+            st.warning(f"Failed to load {file.name}: {e}")
+
 elif data_source == "🌐 Load from GitHub":
     github_url = st.text_input("Paste raw GitHub CSV URL")
     if github_url:
@@ -108,6 +120,88 @@ Here is the dataset:
 
 {filtered_data.to_csv(index=False)}
 """
+                 # 📈 新模式：历史趋势图分析
+                elif "history line" in user_question.lower():
+                    brand_match = re.search(r"brand-([a-zA-Z0-9\s]+)", user_question, re.IGNORECASE)
+                    model_match = re.search(r"model-([a-zA-Z0-9\s]+)", user_question, re.IGNORECASE)
+
+                    if not brand_match or not model_match:
+                        st.error("❌ Format must be like: 'history line brand-Toyota model-Camry'")
+                    else:
+                        brand = brand_match.group(1).strip()
+                        model = model_match.group(1).strip()
+                        st.info(f"📌 Searching historical trend for **{brand} {model}**")
+
+                        if 'uploaded_files' not in st.session_state or not st.session_state['uploaded_files']:
+                            st.error("❌ No history files uploaded. Please upload multiple dated CSVs.")
+                        else:
+                            all_history_df = []
+                            for f in st.session_state['uploaded_files']:
+                                try:
+                                    df_temp = pd.read_csv(f)
+                                    if "Date" not in df_temp.columns:
+                                        continue
+                                    df_temp["Date"] = pd.to_datetime(df_temp["Date"])
+                                    df_temp["Brand"] = df_temp["Brand"].astype(str)
+                                    df_temp["Model"] = df_temp["Model"].astype(str)
+                                    df_temp["Price"] = df_temp["Price"].astype(str).str.replace(",", "").str.extract(r'(\d+)').astype(float)
+                                    df_temp["Kilometers"] = df_temp["Kilometers"].astype(str).str.replace(",", "").str.extract(r'(\d+)').astype(float)
+                                    all_history_df.append(df_temp)
+                                except Exception as e:
+                                    st.warning(f"⚠️ Skipped file {f.name}: {e}")
+
+                            if not all_history_df:
+                                st.warning("⚠️ No valid files with Date column found.")
+                            else:
+                                history_df = pd.concat(all_history_df)
+                                filtered = history_df[
+                                    (history_df["Brand"].str.lower() == brand.lower()) &
+                                    (history_df["Model"].str.lower() == model.lower())
+                                ].copy()
+
+                                if filtered.empty:
+                                    st.warning("No records found for the given brand and model.")
+                                else:
+                                    filtered.sort_values("Date", inplace=True)
+
+                                    st.subheader("📈 Price Over Time")
+                                    st.line_chart(filtered[["Date", "Price"]].set_index("Date"))
+
+                                    st.subheader("📉 Kilometers Over Time")
+                                    st.line_chart(filtered[["Date", "Kilometers"]].set_index("Date"))
+
+                                    st.subheader("📊 Average Year Over Time")
+                                    avg_year = filtered.groupby("Date")["Year"].mean().reset_index()
+                                    st.line_chart(avg_year.set_index("Date"))
+
+                                    # ✨ 可选 GPT 分析 Prompt
+                                    trend_prompt = f"""
+You are a professional automotive data analyst in Dubai.
+
+A user requested a historical analysis with the following filters:
+Brand: {brand}
+Model: {model}
+
+Here is the historical dataset:
+{filtered.to_csv(index=False)}
+
+Please:
+1. Identify whether the price is increasing or decreasing.
+2. Discuss how mileage trend evolves over time.
+3. Comment on whether average manufacturing year is getting newer or older.
+4. Make recommendations for buyers based on these trends.
+"""
+                                    response = client.chat.completions.create(
+                                        model="gpt-4o",
+                                        messages=[
+                                            {"role": "system", "content": "You are a data analyst specialized in car market trends in Dubai."},
+                                            {"role": "user", "content": trend_prompt}
+                                        ],
+                                        temperature=0.3,
+                                        max_tokens=3000
+                                    )
+                                    st.markdown("### 📊 Historical Trend GPT Analysis")
+                                    st.markdown(response.choices[0].message.content)
 
                 # 🌍 全局市场趋势模式
                 elif any(kw in user_question.lower() for kw in ['overall', 'market', 'all brands', 'general trend', 'whole market', 'total', '总览', '整体', '全部', '所有', '市场', '平均']):
