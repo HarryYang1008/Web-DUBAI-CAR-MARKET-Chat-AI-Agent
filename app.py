@@ -143,14 +143,19 @@ Here is the dataset:
                             all_history_df = []
                             for f in st.session_state['uploaded_files']:
                                 try:
-                                    df_temp = pd.read_csv(f)
+                                    f.seek(0)  # ✅ Reset pointer
+                                    df_temp = pd.read_csv(f, encoding='utf-8-sig')
+
                                     if "Date" not in df_temp.columns:
+                                        st.warning(f"⚠️ Skipped {f.name}: Missing 'Date' column.")
                                         continue
-                                    df_temp["Date"] = pd.to_datetime(df_temp["Date"])
+
+                                    df_temp["Date"] = pd.to_datetime(df_temp["Date"], errors='coerce')
                                     df_temp["Brand"] = df_temp["Brand"].astype(str)
                                     df_temp["Model"] = df_temp["Model"].astype(str)
                                     df_temp["Price"] = df_temp["Price"].astype(str).str.replace(",", "").str.extract(r'(\d+)').astype(float)
                                     df_temp["Kilometers"] = df_temp["Kilometers"].astype(str).str.replace(",", "").str.extract(r'(\d+)').astype(float)
+
                                     all_history_df.append(df_temp)
                                 except Exception as e:
                                     st.warning(f"⚠️ Skipped file {f.name}: {e}")
