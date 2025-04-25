@@ -169,8 +169,8 @@ Here is the dataset:
 
                     # ✅ 模糊匹配品牌+车型
                     filtered = history_df[
-                        history_df["Brand"].str.lower().str.contains(brand.lower()) &
-                        history_df["Model"].str.lower().str.contains(model.lower())
+                        history_df["Brand"].str.lower().str.strip().str.contains(brand.lower()) &
+                        history_df["Model"].str.lower().str.strip().str.contains(model.lower())
                     ].copy()
 
                     if filtered.empty:
