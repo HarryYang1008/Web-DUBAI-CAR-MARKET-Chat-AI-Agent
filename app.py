@@ -125,11 +125,12 @@ Here is the dataset:
 """
                  # 📈 新模式：历史趋势图分析
                 elif "history line" in user_question.lower():
-                    brand_match = re.search(r"brand-([a-zA-Z0-9\s]+)", user_question, re.IGNORECASE)
-                    model_match = re.search(r"model-([a-zA-Z0-9\s]+)", user_question, re.IGNORECASE)
+                    # 🧠 新版引号匹配
+                    brand_match = re.search(r'brand-[\'"]?([\w\s\-]+)[\'"]?', user_question, re.IGNORECASE)
+                    model_match = re.search(r'model-[\'"]?([\w\s\-]+)[\'"]?', user_question, re.IGNORECASE)
 
                     if not brand_match or not model_match:
-                        st.error("❌ Format must be like: 'history line brand-Toyota model-Camry'")
+                        st.error("❌ Format must be like: 'history line brand-\"Tesla\" model-\"Model Y\"'")
                         st.stop()
 
                     brand = brand_match.group(1).strip()
@@ -144,7 +145,7 @@ Here is the dataset:
 
                     for f in st.session_state["uploaded_files"]:
                         try:
-                            f.seek(0)  # 必须重置文件指针
+                            f.seek(0)
                             df_temp = pd.read_csv(f, encoding="utf-8-sig")
 
                             if "Date" not in df_temp.columns:
@@ -157,37 +158,36 @@ Here is the dataset:
                             df_temp["Price"] = df_temp["Price"].astype(str).str.replace(",", "").str.extract(r"(\d+)").astype(float)
                             df_temp["Kilometers"] = df_temp["Kilometers"].astype(str).str.replace(",", "").str.extract(r"(\d+)").astype(float)
 
-                            all_history_df.append(df_temp)
+                            # 🔍 模糊筛选
+                            df_filtered = df_temp[
+                                df_temp["Brand"].str.lower().str.contains(brand.lower(), na=False) &
+                                df_temp["Model"].str.lower().str.contains(model.lower(), na=False)
+                            ]
+
+                            if df_filtered.empty:
+                                st.warning(f"⚠️ No match in {f.name}, skipped.")
+                                continue
+
+                            all_history_df.append(df_filtered)
+
                         except Exception as e:
                             st.warning(f"⚠️ Skipped file {f.name}: {e}")
 
                     if not all_history_df:
-                        st.warning("⚠️ No valid files with Date column found.")
+                        st.error("❌ No valid records found in any file for the given brand/model.")
                         st.stop()
 
                     history_df = pd.concat(all_history_df)
-
-                    # ✅ 模糊匹配品牌+车型
-                    filtered = history_df[
-                        history_df["Brand"].str.lower().str.strip().str.contains(brand.lower()) &
-                        history_df["Model"].str.lower().str.strip().str.contains(model.lower())
-                    ].copy()
-
-                    if filtered.empty:
-                        st.warning("⚠️ No records found for the given brand and model.")
-                        st.write("📌 Available combinations preview:", history_df[["Brand", "Model"]].drop_duplicates().head(10))
-                        st.stop()
-
-                    filtered.sort_values("Date", inplace=True)
+                    history_df.sort_values("Date", inplace=True)
 
                     st.subheader("📈 Price Over Time")
-                    st.line_chart(filtered[["Date", "Price"]].set_index("Date"))
+                    st.line_chart(history_df[["Date", "Price"]].set_index("Date"))
 
                     st.subheader("📉 Kilometers Over Time")
-                    st.line_chart(filtered[["Date", "Kilometers"]].set_index("Date"))
+                    st.line_chart(history_df[["Date", "Kilometers"]].set_index("Date"))
 
                     st.subheader("📊 Average Year Over Time")
-                    year_avg = filtered.groupby("Date")["Year"].mean().reset_index()
+                    year_avg = history_df.groupby("Date")["Year"].mean().reset_index()
                     st.line_chart(year_avg.set_index("Date"))
 
                     trend_prompt = f"""
@@ -198,7 +198,7 @@ Here is the dataset:
                 Model: {model}
 
                 Here is the historical dataset:
-                {filtered.to_csv(index=False)}
+                {history_df.to_csv(index=False)}
 
                 Please:
                 1. Identify whether the price is increasing or decreasing.
