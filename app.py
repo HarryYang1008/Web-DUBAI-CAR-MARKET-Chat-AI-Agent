@@ -190,50 +190,110 @@ Here is the dataset:
 
                     st.subheader("📈 Price Distribution + Median Trend")
 
-                    # 每日中位数统计：价格、里程、年份
+                    # 🚩区分 showroom 文件（无 Date）与市场文件（有 Date）
+                    market_data_list = []
+                    showroom_data_list = []
+
+                    for f in st.session_state["uploaded_files"]:
+                        f.seek(0)
+                        df_temp = pd.read_csv(f, encoding="utf-8-sig")
+                        if "Brand" not in df_temp.columns or "Model" not in df_temp.columns:
+                            continue
+
+                        # 标准化字段
+                        df_temp["Brand"] = df_temp["Brand"].astype(str)
+                        df_temp["Model"] = df_temp["Model"].astype(str)
+                        df_temp["Price"] = df_temp["Price"].astype(str).str.replace(",", "").str.extract(r"(\d+)").astype(float)
+                        df_temp["Kilometers"] = df_temp["Kilometers"].astype(str).str.replace(",", "").str.extract(r"(\d+)").astype(float)
+                        df_temp["Year"] = df_temp["Year"].astype(float)
+
+                        # 品牌&车型筛选
+                        df_filtered = df_temp[
+                            df_temp["Brand"].str.lower().str.contains(brand.lower(), na=False) &
+                            df_temp["Model"].str.lower().str.contains(model.lower(), na=False)
+                        ]
+
+                        # ⏬ 年份筛选（如果指定了）
+                        year_match = re.search(r'year-[\'"]?([\d,\s]+)[\'"]?', user_question, re.IGNORECASE)
+                        if year_match:
+                            year_list = [int(y.strip()) for y in year_match.group(1).split(",") if y.strip().isdigit()]
+                            df_filtered = df_filtered[df_filtered["Year"].isin(year_list)]
+
+                        # 区分 showroom 文件 vs 市场文件
+                        if "date" in df_filtered.columns.str.lower().tolist():
+                            df_filtered["Date"] = pd.to_datetime(df_filtered["Date"], errors="coerce")
+                            market_data_list.append(df_filtered)
+                        elif "showroom" in f.name.lower():
+                            showroom_data_list.append(df_filtered)
+
+                    # 合并
+                    if not market_data_list:
+                        st.warning("❗ No market data found.")
+                        st.stop()
+
+                    history_df = pd.concat(market_data_list)
+                    history_df.sort_values("Date", inplace=True)
+
+                    showroom_df = pd.concat(showroom_data_list) if showroom_data_list else pd.DataFrame(columns=history_df.columns)
+
+                    # ✅ 计算每日中位数
                     median_df = history_df.groupby("Date").agg({
                         "Price": "median",
                         "Kilometers": "mean",
                         "Year": "mean"
                     }).reset_index().rename(columns={"Price": "MedianPrice"})
 
-                    # 原始每日数据点（蓝点）
+                    # 图层一：蓝色市场数据点
                     point_chart = alt.Chart(history_df).mark_circle(size=60, color='steelblue').encode(
                         x=alt.X('Date:T', title='Date'),
                         y=alt.Y('Price:Q', title='Price (AED)'),
                         tooltip=[
                             alt.Tooltip('Date:T'),
-                            alt.Tooltip('Price:Q', title="Price"),
-                            alt.Tooltip('Kilometers:Q', title="Mileage"),
-                            alt.Tooltip('Year:Q', title="Year")
+                            alt.Tooltip('Price:Q'),
+                            alt.Tooltip('Kilometers:Q'),
+                            alt.Tooltip('Year:Q')
                         ]
                     )
 
-                    # 中位数红线
+                    # 图层二：红色中位数点+线
                     median_line = alt.Chart(median_df).mark_line(color='red', strokeWidth=2).encode(
                         x='Date:T',
                         y='MedianPrice:Q'
                     )
-
-                    # 中位数红点 + tooltip 展示均值
                     median_point = alt.Chart(median_df).mark_point(color='red', size=80, filled=True).encode(
                         x='Date:T',
                         y='MedianPrice:Q',
                         tooltip=[
                             alt.Tooltip('Date:T'),
-                            alt.Tooltip('MedianPrice:Q', title="Median Price"),
+                            alt.Tooltip('MedianPrice:Q'),
                             alt.Tooltip('Kilometers:Q', title="Avg Mileage"),
                             alt.Tooltip('Year:Q', title="Avg Year")
                         ]
                     )
 
-                    # 合并图层
-                    combined_chart = (point_chart + median_line + median_point).properties(
+                    # 图层三：黄色 showroom 横线（跨所有日期范围）
+                    if not showroom_df.empty:
+                        x_min = history_df["Date"].min()
+                        x_max = history_df["Date"].max()
+                        showroom_lines = alt.Chart(showroom_df).mark_rule(color='gold', strokeDash=[3, 3]).encode(
+                            x=alt.XValue(x_min),
+                            x2=alt.X2Value(x_max),
+                            y='Price:Q',
+                            tooltip=[
+                                alt.Tooltip('Price:Q'),
+                                alt.Tooltip('Kilometers:Q'),
+                                alt.Tooltip('Year:Q')
+                            ]
+                        )
+                        combined_chart = (point_chart + median_line + median_point + showroom_lines)
+                    else:
+                        combined_chart = (point_chart + median_line + median_point)
+
+                    # 📈 显示图表
+                    st.altair_chart(combined_chart.properties(
                         width=700,
                         height=400
-                    ).interactive()
-
-                    st.altair_chart(combined_chart, use_container_width=True)
+                    ).interactive(), use_container_width=True)
 
 
 
