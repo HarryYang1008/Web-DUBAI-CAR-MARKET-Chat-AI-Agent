@@ -133,7 +133,9 @@ Here is the dataset:
                         st.info(f"📌 Searching historical trend for **{brand} {model}**")
 
                         if 'uploaded_files' not in st.session_state or not st.session_state['uploaded_files']:
-                            st.error("❌ No history files uploaded. Please upload multiple dated CSVs.")
+                            st.error("❌ No history files uploaded.")
+                            st.stop() 
+
                         else:
                             all_history_df = []
                             for f in st.session_state['uploaded_files']:
