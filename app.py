@@ -182,22 +182,52 @@ Here is the dataset:
 
                     import altair as alt
 
-                    st.subheader("📈 Median Price Trend Over Time")
+                    st.subheader("📈 Price Distribution + Median Trend")
 
-                    # 计算每日中位数价格
-                    median_df = history_df.groupby("Date")["Price"].median().reset_index()
+                    # 每日中位数统计：价格、里程、年份
+                    median_df = history_df.groupby("Date").agg({
+                        "Price": "median",
+                        "Kilometers": "mean",
+                        "Year": "mean"
+                    }).reset_index().rename(columns={"Price": "MedianPrice"})
 
-                    # 使用 Altair 绘制红点 + 连线图
-                    chart = alt.Chart(median_df).mark_line(point=alt.OverlayMarkDef(color='red')).encode(
+                    # 原始每日数据点（蓝点）
+                    point_chart = alt.Chart(history_df).mark_circle(size=60, color='steelblue').encode(
                         x=alt.X('Date:T', title='Date'),
-                        y=alt.Y('Price:Q', title='Median Price (AED)'),
-                        tooltip=['Date:T', 'Price:Q']
-                    ).properties(
+                        y=alt.Y('Price:Q', title='Price (AED)'),
+                        tooltip=[
+                            alt.Tooltip('Date:T'),
+                            alt.Tooltip('Price:Q', title="Price"),
+                            alt.Tooltip('Kilometers:Q', title="Mileage"),
+                            alt.Tooltip('Year:Q', title="Year")
+                        ]
+                    )
+
+                    # 中位数红线
+                    median_line = alt.Chart(median_df).mark_line(color='red', strokeWidth=2).encode(
+                        x='Date:T',
+                        y='MedianPrice:Q'
+                    )
+
+                    # 中位数红点 + tooltip 展示均值
+                    median_point = alt.Chart(median_df).mark_point(color='red', size=80, filled=True).encode(
+                        x='Date:T',
+                        y='MedianPrice:Q',
+                        tooltip=[
+                            alt.Tooltip('Date:T'),
+                            alt.Tooltip('MedianPrice:Q', title="Median Price"),
+                            alt.Tooltip('Kilometers:Q', title="Avg Mileage"),
+                            alt.Tooltip('Year:Q', title="Avg Year")
+                        ]
+                    )
+
+                    # 合并图层
+                    combined_chart = (point_chart + median_line + median_point).properties(
                         width=700,
                         height=400
                     ).interactive()
 
-                    st.altair_chart(chart, use_container_width=True)
+                    st.altair_chart(combined_chart, use_container_width=True)
 
 
 
