@@ -279,12 +279,17 @@ Here is the dataset:
                     )
 
                     # 图层三：黄色 showroom 横线（跨所有日期范围）
+                    # 图层三：黄色 showroom 横线（跨所有日期范围）
                     if not showroom_df.empty:
-                        if not history_df["Date"].isnull().all():
-                            x_min = history_df["Date"].min()
-                            x_max = history_df["Date"].max()
+                        x_min = history_df["Date"].min()
+                        x_max = history_df["Date"].max()
 
-                            showroom_lines = alt.Chart(showroom_df).mark_rule(color='gold', strokeDash=[3, 3]).encode(
+                        # 只有当日期是有效的 timestamp 时才渲染
+                        if pd.notnull(x_min) and pd.notnull(x_max):
+                            showroom_lines = alt.Chart(showroom_df).mark_rule(
+                                color='gold',
+                                strokeDash=[3, 3]
+                            ).encode(
                                 x=alt.XValue(x_min),
                                 x2=alt.X2Value(x_max),
                                 y='Price:Q',
@@ -294,19 +299,12 @@ Here is the dataset:
                                     alt.Tooltip('Year:Q')
                                 ]
                             )
-
                             combined_chart = point_chart + median_line + median_point + showroom_lines
                         else:
-                            st.warning("⚠️ Market data has no valid date values. Cannot render showroom price lines.")
+                            st.warning("⚠️ Market data does not contain valid dates. Showroom price lines skipped.")
                             combined_chart = point_chart + median_line + median_point
                     else:
                         combined_chart = point_chart + median_line + median_point
-
-                    # 📈 显示图表
-                    st.altair_chart(combined_chart.properties(
-                        width=700,
-                        height=400
-                    ).interactive(), use_container_width=True)
 
 
 
