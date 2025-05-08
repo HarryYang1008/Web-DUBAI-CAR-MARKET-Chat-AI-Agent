@@ -8,7 +8,10 @@ from openai import OpenAI
 # 🔐 用户系统设置
 names = ["Admin", "BusinessUser"]
 usernames = ["admin", "user1"]
-passwords = stauth.Hasher(["1234", "5678"]).generate()  # 密码将哈希存储
+passwords = [
+    '$2b$12$lfPSGxdSO4roQUaPVqSDBORR8u7eq9AWld5vDkTO7eIFvytHInNTG',
+    '$2b$12$2kRskGAYZ2ZBdq8S9tAwt.W5EucF1z1.zdBCY13FzYdkIgEETb89q'
+]
 
 authenticator = stauth.Authenticate(
     names, usernames, passwords,
