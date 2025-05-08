@@ -2,11 +2,38 @@ import streamlit as st
 import pandas as pd
 import os
 import re
+import streamlit_authenticator as stauth
 from openai import OpenAI
+
+# 🔐 用户系统设置
+names = ["Admin", "BusinessUser"]
+usernames = ["admin", "user1"]
+passwords = stauth.Hasher(["1234", "5678"]).generate()  # 密码将哈希存储
+
+authenticator = stauth.Authenticate(
+    names, usernames, passwords,
+    "dubaicar_auth", "abcdef", cookie_expiry_days=1
+)
+
+# 显示登录界面
+name, auth_status, username = authenticator.login("🔐 Login", "main")
+
+# 登录状态处理
+if auth_status is False:
+    st.error("❌ Username/password is incorrect")
+    st.stop()
+elif auth_status is None:
+    st.warning("⚠️ Please enter your credentials")
+    st.stop()
+
+# 成功登录后显示欢迎信息
+st.sidebar.success(f"✅ Logged in as: {name} ({username})")
+authenticator.logout("Logout", "sidebar")
 
 # 初始化 OpenAI 客户端
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# ✅ Streamlit 主界面开始
 st.set_page_config(page_title="Dubai Car Market Q&A", layout="wide")
 st.title("🚗 Dubai Used Car Price Assistant")
 
