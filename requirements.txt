@@ -2,4 +2,5 @@ streamlit>=1.28
 openai>=1.2.0
 pandas
 tabulate
-streamlit-authenticator
+bcrypt
+streamlit-authenticator==0.2.2
