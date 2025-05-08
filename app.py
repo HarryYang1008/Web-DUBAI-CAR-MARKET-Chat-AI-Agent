@@ -27,18 +27,19 @@ authenticator = stauth.Authenticate(
 
 # 登录界面
 st.title("🔐 Dubai Car Market Login")
-auth_result = authenticator.login(location="main")
 
-if auth_result is None:
-    st.warning("⚠️ Please enter your credentials")
+# 登录界面（老版本写法）
+try:
+    name, auth_status, username = authenticator.login("Login", "main")
+except Exception as e:
+    st.error(f"❌ Authentication failed: {e}")
     st.stop()
 
-name = auth_result['name']
-auth_status = auth_result['authenticated']
-username = auth_result['username']
-
-if not auth_status:
+if auth_status is False:
     st.error("❌ Username/password is incorrect")
+    st.stop()
+elif auth_status is None:
+    st.warning("⚠️ Please enter your credentials")
     st.stop()
 
 st.sidebar.success(f"✅ Logged in as: {name} ({username})")
