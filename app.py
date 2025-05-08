@@ -6,6 +6,7 @@ import streamlit_authenticator as stauth
 from openai import OpenAI
 
 # ✅ 使用 credentials 字典格式
+# 用户凭证
 credentials = {
     "usernames": {
         "admin": {
@@ -19,28 +20,31 @@ credentials = {
     }
 }
 
-# ✅ 创建 authenticator 对象（注意参数变了）
 authenticator = stauth.Authenticate(
     credentials,
     "dubaicar_auth", "abcdef", cookie_expiry_days=1
 )
 
-# ✅ 登录逻辑
+# 登录界面
 st.title("🔐 Dubai Car Market Login")
+auth_result = authenticator.login(location="main")
 
-name, auth_status, username = authenticator.login(location="main")
-
-if auth_status is False:
-    st.error("❌ Username/password is incorrect")
-    st.stop()
-elif auth_status is None:
+if auth_result is None:
     st.warning("⚠️ Please enter your credentials")
+    st.stop()
+
+name = auth_result['name']
+auth_status = auth_result['authenticated']
+username = auth_result['username']
+
+if not auth_status:
+    st.error("❌ Username/password is incorrect")
     st.stop()
 
 st.sidebar.success(f"✅ Logged in as: {name} ({username})")
 authenticator.logout("Logout", "sidebar")
 
-# ✅ 初始化 OpenAI 和主界面
+# 初始化
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 st.set_page_config(page_title="Dubai Car Market Q&A", layout="wide")
 st.title("🚗 Dubai Used Car Price Assistant")
