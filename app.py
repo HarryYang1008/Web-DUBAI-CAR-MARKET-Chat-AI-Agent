@@ -6,6 +6,15 @@ import streamlit_authenticator as stauth
 from openai import OpenAI
 
 # ✅ ✅ 必须放在任何 Streamlit 命令之前！
+hide_github_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    </style>
+"""
+st.markdown(hide_github_style, unsafe_allow_html=True)
+
 st.set_page_config(page_title="Dubai Car Market Q&A", layout="wide")
 
 
