@@ -8,8 +8,7 @@ from openai import OpenAI
 # ✅ ✅ 必须放在任何 Streamlit 命令之前！
 st.set_page_config(page_title="Dubai Car Market Q&A", layout="wide")
 
-# 登录相关
-st.title("🔐 Dubai Car Market Login")
+
 
 # ✅ 使用 credentials 字典格式
 # 用户凭证
