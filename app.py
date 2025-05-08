@@ -5,23 +5,29 @@ import re
 import streamlit_authenticator as stauth
 from openai import OpenAI
 
-# 🔐 用户系统设置
-names = ["Admin", "BusinessUser"]
-usernames = ["admin", "user1"]
-passwords = [
-    '$2b$12$lfPSGxdSO4roQUaPVqSDBORR8u7eq9AWld5vDkTO7eIFvytHInNTG',
-    '$2b$12$2kRskGAYZ2ZBdq8S9tAwt.W5EucF1z1.zdBCY13FzYdkIgEETb89q'
-]
+# ✅ 使用 credentials 字典格式
+credentials = {
+    "usernames": {
+        "admin": {
+            "name": "Admin",
+            "password": "$2b$12$lfPSGxdSO4roQUaPVqSDBORR8u7eq9AWld5vDkTO7eIFvytHInNTG"
+        },
+        "user1": {
+            "name": "BusinessUser",
+            "password": "$2b$12$2kRskGAYZ2ZBdq8S9tAwt.W5EucF1z1.zdBCY13FzYdkIgEETb89q"
+        }
+    }
+}
 
+# ✅ 创建 authenticator 对象（注意参数变了）
 authenticator = stauth.Authenticate(
-    names, usernames, passwords,
+    credentials,
     "dubaicar_auth", "abcdef", cookie_expiry_days=1
 )
 
-# 显示登录界面
+# ✅ 登录逻辑
 name, auth_status, username = authenticator.login("🔐 Login", "main")
 
-# 登录状态处理
 if auth_status is False:
     st.error("❌ Username/password is incorrect")
     st.stop()
@@ -29,14 +35,11 @@ elif auth_status is None:
     st.warning("⚠️ Please enter your credentials")
     st.stop()
 
-# 成功登录后显示欢迎信息
 st.sidebar.success(f"✅ Logged in as: {name} ({username})")
 authenticator.logout("Logout", "sidebar")
 
-# 初始化 OpenAI 客户端
+# ✅ 初始化 OpenAI 和主界面
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-# ✅ Streamlit 主界面开始
 st.set_page_config(page_title="Dubai Car Market Q&A", layout="wide")
 st.title("🚗 Dubai Used Car Price Assistant")
 
