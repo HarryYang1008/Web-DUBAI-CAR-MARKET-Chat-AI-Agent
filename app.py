@@ -11,11 +11,11 @@ credentials = {
     "usernames": {
         "admin": {
             "name": "Admin",
-            "password": "$2b$12$lfPSGxdSO4roQUaPVqSDBORR8u7eq9AWld5vDkTO7eIFvytHInNTG"
+            "password": "$2b$12$dCBJKMuHa8bGyI8VfWRuQe07j4e7em.QC1eReXY4O4XGEHRu82gUG"
         },
         "user1": {
             "name": "BusinessUser",
-            "password": "$2b$12$2kRskGAYZ2ZBdq8S9tAwt.W5EucF1z1.zdBCY13FzYdkIgEETb89q"
+            "password": "$2b$12$prcDKyioK8tx3.L6lb9rguQtD4lhAp6RG3PVnhbuwl4rL0RtiCh2W"
         }
     }
 }
