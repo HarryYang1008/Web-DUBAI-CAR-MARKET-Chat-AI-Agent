@@ -10,12 +10,12 @@ from openai import OpenAI
 credentials = {
     "usernames": {
         "admin": {
-            "name": "Admin",
-            "password": "$2b$12$dCBJKMuHa8bGyI8VfWRuQe07j4e7em.QC1eReXY4O4XGEHRu82gUG"
+            "name": "admin",
+            "password": "$2b$12$dSxgOI7zgP5tLbfB.m.oFe3uD/tCGDAYZe3uNOx.9MNuJJGYePIM2"
         },
         "user1": {
-            "name": "BusinessUser",
-            "password": "$2b$12$prcDKyioK8tx3.L6lb9rguQtD4lhAp6RG3PVnhbuwl4rL0RtiCh2W"
+            "name": "user1",
+            "password": "$2b$12$0qYvtaaJoXbOI2aQgeHixO5ES78jwdrnwvZLaseyjvq2DLhuXwvNm"
         }
     }
 }
