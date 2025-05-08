@@ -26,7 +26,9 @@ authenticator = stauth.Authenticate(
 )
 
 # ✅ 登录逻辑
-name, auth_status, username = authenticator.login("🔐 Login", "main")
+st.title("🔐 Dubai Car Market Login")
+
+name, auth_status, username = authenticator.login(location="main")
 
 if auth_status is False:
     st.error("❌ Username/password is incorrect")
