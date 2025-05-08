@@ -5,6 +5,12 @@ import re
 import streamlit_authenticator as stauth
 from openai import OpenAI
 
+# ✅ ✅ 必须放在任何 Streamlit 命令之前！
+st.set_page_config(page_title="Dubai Car Market Q&A", layout="wide")
+
+# 登录相关
+st.title("🔐 Dubai Car Market Login")
+
 # ✅ 使用 credentials 字典格式
 # 用户凭证
 credentials = {
@@ -25,8 +31,6 @@ authenticator = stauth.Authenticate(
     "dubaicar_auth", "abcdef", cookie_expiry_days=1
 )
 
-# 登录界面
-st.title("🔐 Dubai Car Market Login")
 
 # 登录界面（老版本写法）
 try:
@@ -47,7 +51,6 @@ authenticator.logout("Logout", "sidebar")
 
 # 初始化
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-st.set_page_config(page_title="Dubai Car Market Q&A", layout="wide")
 st.title("🚗 Dubai Used Car Price Assistant")
 
 # 📂 显示当前数据文件名
